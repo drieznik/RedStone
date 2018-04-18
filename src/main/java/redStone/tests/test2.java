@@ -25,7 +25,12 @@ public class test2 {
     @Test (dataProvider =  "populateReportsList")
     public void validateReportsResponse(BaseReport report) throws IOException {
         Assert.assertEquals( conn.generateReport(report), 200);
-        conn.getAssetsList();
+    }
+
+
+    @Test
+    public void testMe() throws IOException {
+        Assert.assertEquals( conn.generatePArticularReport(), 200);
     }
 
     @DataProvider

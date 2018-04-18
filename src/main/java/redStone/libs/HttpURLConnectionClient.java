@@ -34,7 +34,6 @@ public class HttpURLConnectionClient {
 
     private ArrayList<BaseReport> reportsArray = new ArrayList<>();
 
-    // private BaseReport report = new BaseReport();
 
     public void initialize() {
         try {
@@ -113,7 +112,7 @@ public class HttpURLConnectionClient {
     }
 
     /* Rest that gets list of requests by report id */
-    public void populateReportRequests(BaseReport report) throws IOException {
+    private void populateReportRequests(BaseReport report) throws IOException {
         HttpURLConnection con = null;
         try {
             URL myPostUrl = new URL(baseUrl + "/api/v1/ReportFilter/ReportFilters?reportId=" + String.valueOf(report.getReportId()));
@@ -121,6 +120,7 @@ public class HttpURLConnectionClient {
             con.setRequestMethod(RequestMethods.GET.name());
             con.setRequestProperty("Cookie", cookie);
             System.out.println("Response is: " + con.getResponseCode() + ", " + con.getResponseMessage());
+            requestsList = null;
             requestsList = readInputStreamToString(con);
             System.out.println("Requests are: " + requestsList);
             parseRequestsToArray(requestsList, report);
@@ -150,11 +150,35 @@ public class HttpURLConnectionClient {
                 con.disconnect();
             report.setRequests(null);
         }
-
+        report.setRequests(null);
         return con.getResponseCode();
     }
 
-    public String makeQueryParams(BaseReport report){
+    public int generatePArticularReport() throws IOException {
+        BaseReport reportToGenerate = new BaseReport();
+        reportToGenerate.setReportId(42);
+        reportToGenerate.setRouteName("ActualProjectedCCDate");
+        populateReportRequests(reportToGenerate);
+        String s = makeQueryParams(reportToGenerate);
+        HttpURLConnection con = null;
+        try {
+            URL myPostUrl = new URL(baseUrl + "/api/v1/Report/ActualProjectedCCDate?" + s);
+            System.out.println(myPostUrl);
+            con = (HttpURLConnection) myPostUrl.openConnection();
+            con.setRequestMethod(RequestMethods.GET.name());
+            con.setRequestProperty("Cookie", cookie);
+            System.out.println("Response is: " + con.getResponseCode() + ", " + con.getResponseMessage());
+            System.out.println("Report is: " + reportToGenerate.getRouteName());
+        } finally {
+            if (con != null)
+                con.disconnect();
+            reportToGenerate.setRequests(null);
+        }
+        //report.setRequests(null);
+        return con.getResponseCode();
+    }
+
+    private String makeQueryParams(BaseReport report){
 
         StringBuilder str = new StringBuilder();
         Set set = report.getRequests().entrySet();
@@ -167,14 +191,6 @@ public class HttpURLConnectionClient {
                     .replace(" ", "") + "&");
         }
         return str.toString();
-    }
-
-    public int generateReport1() throws IOException {
-        BaseReport report = new BaseReport();
-        report.setReportId(5);
-        report.setRouteName("QInvRptFirstRepublic");
-        populateReportRequests(report);
-        return 0;
     }
 
     /* Method that reads input string */
@@ -191,6 +207,7 @@ public class HttpURLConnectionClient {
                 sb.append(inputLine);
             }
             result = sb.toString();
+
         } catch (Exception e) {
             result = null;
         } finally {
@@ -220,6 +237,7 @@ public class HttpURLConnectionClient {
 
     /* Method that populates ArrayList from requests list */
     private void parseRequestsToArray(String stringToParse, BaseReport report) {
+        requestsArrayList.clear();
         JSONArray ar = new JSONArray(stringToParse);
         HashMap<String, String> map = new HashMap<>();
 
@@ -230,6 +248,7 @@ public class HttpURLConnectionClient {
     }
 
     private void mapRequests(ArrayList<String> parameters, BaseReport report) {
+        requestMap.clear();
        for(String s: parameters)
             switch (s) {
                 case "assets":
@@ -253,7 +272,7 @@ public class HttpURLConnectionClient {
                     requestMap.put(s, "1");
                     break;
                 case "fundId":
-                    requestMap.put(s, "5");
+                    requestMap.put(s, "24");
                     break;
                 case "endDate":
                     requestMap.put(s, "12/31/2017");
@@ -267,6 +286,19 @@ public class HttpURLConnectionClient {
                 case "startDate":
                     requestMap.put(s, "01/01/2010");
                     break;
+                case "fundInvestorLE":
+                    requestMap.put(s, "129");
+                    break;
+                case "globalPartyTypes":
+                    requestMap.put(s, "6");
+                    break;
+                case "archivedParties":
+                    requestMap.put(s, "true");
+                    break;
+                case "singleFund":
+                    requestMap.put("funds", "24");
+                    break;
+
             }
             report.setRequests(requestMap);
     }
@@ -274,7 +306,6 @@ public class HttpURLConnectionClient {
 
     private void parseReports(String toParse) {
         JSONArray ar = new JSONArray(toParse);
-        ArrayList<BaseReport> temp = new ArrayList<>();
         for (int i = 0; i < ar.length(); i++) {
             BaseReport reportTemp = new BaseReport();
             reportTemp.setReportId(ar.getJSONObject(i).getInt("reportId"));
